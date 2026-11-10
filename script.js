@@ -1,65 +1,58 @@
-// ======================================
-// SPENDWISE BUDGET TRACKER
-// ======================================
-
+// =================================
 // 1. VARIABLES AND ARRAYS
+// =================================
 
-let budget = 0;
+let totalBudget = 0;
 
 // Store multiple expenses in an array
 let expenses = [];
 
-
-// 2. SELECT HTML ELEMENTS
-
+// Get HTML elements
 const budgetForm = document.getElementById("budgetForm");
-const budgetInput = document.getElementById("budgetInput");
-
 const expenseForm = document.getElementById("expenseForm");
+
+const budgetInput = document.getElementById("budgetInput");
 const expenseName = document.getElementById("expenseName");
 const expenseAmount = document.getElementById("expenseAmount");
 const expenseCategory = document.getElementById("expenseCategory");
 const expenseDate = document.getElementById("expenseDate");
 
-const totalBudget = document.getElementById("totalBudget");
-const totalExpenses = document.getElementById("totalExpenses");
-const remainingBalance = document.getElementById("remainingBalance");
+const totalBudgetDisplay = document.getElementById("totalBudget");
+const totalExpensesDisplay = document.getElementById("totalExpenses");
+const remainingBalanceDisplay = document.getElementById("remainingBalance");
 
-const expenseTableBody = document.getElementById("expenseTableBody");
-const budgetMessage = document.getElementById("budgetMessage");
-
-
-// 3. FORMAT CURRENCY
-
-function formatCurrency(amount) {
-	return "KSh " + amount.toFixed(2);
-}
+const expenseList = document.getElementById("expenseList");
+const feedback = document.getElementById("feedback");
 
 
-// 4. SET BUDGET USING EVENT LISTENER
+// =================================
+// 2. SET THE BUDGET
+// =================================
 
 budgetForm.addEventListener("submit", function(event) {
 
 	event.preventDefault();
 
-	const enteredBudget = Number(budgetInput.value);
+	const budget = Number(budgetInput.value);
 
-	if (!Number.isFinite(enteredBudget) || enteredBudget <= 0) {
-		alert("Please enter a valid budget.");
+	if (budget <= 0 || !Number.isFinite(budget)) {
+		feedback.textContent = "Please enter a valid budget.";
 		return;
 	}
 
-	budget = enteredBudget;
+	totalBudget = budget;
 
 	updateDashboard();
 
-	budgetMessage.textContent = "Your budget has been updated successfully.";
+	feedback.textContent = "Budget successfully updated!";
 
 	budgetForm.reset();
 });
 
 
-// 5. ADD EXPENSE USING AN ARRAY
+// =================================
+// 3. ADD EXPENSES USING ARRAYS
+// =================================
 
 expenseForm.addEventListener("submit", function(event) {
 
@@ -70,19 +63,33 @@ expenseForm.addEventListener("submit", function(event) {
 	const category = expenseCategory.value;
 	const date = expenseDate.value;
 
-	// Validate user input
+	// Validate expense information
 	if (
 		name === "" ||
-		!Number.isFinite(amount) ||
 		amount <= 0 ||
+		!Number.isFinite(amount) ||
 		category === "" ||
 		date === ""
 	) {
-		alert("Please fill in all fields correctly.");
+		feedback.textContent = "Please enter valid expense details.";
 		return;
 	}
 
-	// Create an expense object
+	// Calculate current expenses
+	let currentTotal = 0;
+
+	for (let i = 0; i < expenses.length; i++) {
+		currentTotal += expenses[i].amount;
+	}
+
+	// Decision making
+	if (currentTotal + amount > totalBudget) {
+		feedback.textContent =
+			"Warning: This expense exceeds your remaining budget!";
+		return;
+	}
+
+	// Create a new expense object
 	const newExpense = {
 		name: name,
 		amount: amount,
@@ -90,108 +97,68 @@ expenseForm.addEventListener("submit", function(event) {
 		date: date
 	};
 
-	// Store expense in the array
+	// Add expense to array
 	expenses.push(newExpense);
 
-	// Update dashboard
-	updateDashboard();
+	feedback.textContent = "Expense added successfully!";
 
-	// Clear form
 	expenseForm.reset();
 
+	// Refresh dashboard
+	updateDashboard();
 });
 
 
-// 6. CALCULATE TOTAL EXPENSES USING A LOOP
-
-function calculateTotalExpenses() {
-
-	let total = 0;
-
-	for (let i = 0; i < expenses.length; i++) {
-
-		total += expenses[i].amount;
-
-	}
-
-	return total;
-}
-
-
-// 7. UPDATE DASHBOARD DYNAMICALLY
+// =================================
+// 4. UPDATE DASHBOARD
+// =================================
 
 function updateDashboard() {
 
-	const total = calculateTotalExpenses();
+	let totalExpenses = 0;
 
-	const remaining = budget - total;
+	// Loop through expenses
+	for (let i = 0; i < expenses.length; i++) {
+		totalExpenses += expenses[i].amount;
+	}
 
-	// Update dashboard figures
-	totalBudget.textContent = formatCurrency(budget);
+	// Calculate remaining balance
+	const remainingBalance = totalBudget - totalExpenses;
 
-	totalExpenses.textContent = formatCurrency(total);
+	// Update dashboard values
+	totalBudgetDisplay.textContent =
+		"KSh " + totalBudget.toFixed(2);
 
-	remainingBalance.textContent = formatCurrency(remaining);
+	totalExpensesDisplay.textContent =
+		"KSh " + totalExpenses.toFixed(2);
 
+	remainingBalanceDisplay.textContent =
+		"KSh " + remainingBalance.toFixed(2);
 
-	// 8. CONDITIONAL STATEMENTS
-
-	if (budget === 0) {
-
-		budgetMessage.textContent =
-			"Please set your budget to get started.";
-
-	} else if (remaining < 0) {
-
-		budgetMessage.textContent =
-			"Warning! You have exceeded your budget.";
-
-	} else if (remaining === 0) {
-
-		budgetMessage.textContent =
-			"You have used your entire budget.";
-
-	} else if (total >= budget * 0.8) {
-
-		budgetMessage.textContent =
-			"Warning! You have used 80% or more of your budget.";
-
-	} else {
-
-		budgetMessage.textContent =
-			"Great! You are managing your budget well.";
-
+	// Display budget feedback
+	if (totalBudget === 0) {
+		feedback.textContent = "Please set your budget first.";
+	} else if (remainingBalance === 0) {
+		feedback.textContent = "You have used your entire budget.";
+	} else if (remainingBalance < totalBudget * 0.2) {
+		feedback.textContent = "Warning: Your remaining budget is low!";
 	}
 
 	// Display expense records
 	displayExpenses();
-
 }
 
 
-// 9. DISPLAY EXPENSES USING A LOOP AND DOM
+// =================================
+// 5. DISPLAY EXPENSES USING LOOPS
+// =================================
 
 function displayExpenses() {
 
-	// Clear existing table records
-	expenseTableBody.innerHTML = "";
+	// Clear previous records
+	expenseList.innerHTML = "";
 
-	// Check if there are expenses
-	if (expenses.length === 0) {
-
-		const row = document.createElement("tr");
-		const cell = document.createElement("td");
-
-		cell.colSpan = 5;
-		cell.textContent = "No expenses yet.";
-
-		row.appendChild(cell);
-		expenseTableBody.appendChild(row);
-
-		return;
-	}
-
-	// Loop through all expense records
+	// Loop through the expense array
 	for (let i = 0; i < expenses.length; i++) {
 
 		const expense = expenses[i];
@@ -199,23 +166,32 @@ function displayExpenses() {
 		const row = document.createElement("tr");
 
 		const nameCell = document.createElement("td");
-		const amountCell = document.createElement("td");
-		const categoryCell = document.createElement("td");
-		const dateCell = document.createElement("td");
-		const actionCell = document.createElement("td");
-
 		nameCell.textContent = expense.name;
-		amountCell.textContent = formatCurrency(expense.amount);
+
+		const amountCell = document.createElement("td");
+		amountCell.textContent =
+			"KSh " + expense.amount.toFixed(2);
+
+		const categoryCell = document.createElement("td");
 		categoryCell.textContent = expense.category;
+
+		const dateCell = document.createElement("td");
 		dateCell.textContent = expense.date;
 
-		// Create delete button
-		const deleteButton = document.createElement("button");
+		const actionCell = document.createElement("td");
 
+		const deleteButton = document.createElement("button");
 		deleteButton.textContent = "Delete";
-		deleteButton.type = "button";
-		deleteButton.dataset.index = i;
-		deleteButton.className = "delete-btn";
+
+		// Delete expense using an event listener
+		deleteButton.addEventListener("click", function() {
+
+			expenses.splice(i, 1);
+
+			feedback.textContent = "Expense deleted successfully!";
+
+			updateDashboard();
+		});
 
 		actionCell.appendChild(deleteButton);
 
@@ -225,30 +201,13 @@ function displayExpenses() {
 		row.appendChild(dateCell);
 		row.appendChild(actionCell);
 
-		expenseTableBody.appendChild(row);
-
+		expenseList.appendChild(row);
 	}
-
 }
 
 
-// 10. DELETE EXPENSE USING EVENT DELEGATION
-
-expenseTableBody.addEventListener("click", function(event) {
-
-	if (event.target.classList.contains("delete-btn")) {
-
-		const index = Number(event.target.dataset.index);
-
-		expenses.splice(index, 1);
-
-		updateDashboard();
-
-	}
-
-});
-
-
-// 11. INITIAL DASHBOARD DISPLAY
+// =================================
+// 6. INITIAL DASHBOARD DISPLAY
+// =================================
 
 updateDashboard();
